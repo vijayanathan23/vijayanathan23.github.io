@@ -70,7 +70,7 @@
 <li>The <strong>proxy server creates a copy of the request</strong> and forwards it to the <strong>actual server</strong>.</li>
 <li>The <strong>server sends a response</strong> → the <strong>proxy stores it and forwards it back</strong> to the client.</li>
 </ol>
-<p>Pretty simple! Well… it <strong>seemed simple</strong>, but it certainly took some time to understand <strong>Golang</strong> and its libraries.<br>There were hiccups—like <strong>not realizing the server was encoding responses in Gzip</strong> and <strong>spending half a day</strong> just figuring out what kind of encoding the server was using when sending responses to the client. 🤦‍♂️</p>
+<p>Pretty simple! Well… it <strong>seemed simple</strong>, but it certainly took some time to understand <strong>Golang</strong> and its libraries.<br>There were hiccups—like <strong>not realizing the server was encoding responses in Gzip</strong>. I <strong>spent half a day</strong> just figuring out what kind of encoding the server was using when sending responses to the client. 🤦‍♂️</p>
 <hr>
 <h2 id="Building-the-Viewer"><a href="#Building-the-Viewer" class="headerlink" title="Building the Viewer"></a>Building the Viewer</h2><p>To <strong>view the intercepted data</strong>, I created a <strong>separate HTTP server</strong> running on <strong>port 8081</strong> within the same Golang app.<br>This <strong>Data Viewer</strong> server:</p>
 <ul>
