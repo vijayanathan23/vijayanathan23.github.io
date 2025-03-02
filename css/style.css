@@ -39,10 +39,16 @@ nav {
 /* Navigation links styling */
 a {
     text-decoration: none;
-    color: #c9d1d9;
+    color: #58a6ff;
     font-weight: 200; /* ExtraLight version */
     padding: 0.25rem 0; /* Minimal padding for alignment */
     transition: color 0.3s ease-in-out;
+    font-style: italic; /* Italics style */
+}
+
+h1 a {
+    color: #c9d1d9;
+    font-style: normal; /* Remove italics for links inside h1 */
 }
 
 /* Hover effect for nav links */
@@ -50,6 +56,7 @@ a:hover {
     color: #58a6ff;
     border-bottom: 2px solid #58a6ff; /* Underline on hover */
 }
+
 
 footer {
     text-align: center;
@@ -79,7 +86,22 @@ footer {
     color: white;
     border: none;
     border-radius: 5px;
-    text-decoration: none;
+    text-decoration: none;    /* Title-Effects Class for TheSaturdayProjects */
+    .Title-Effects {
+        font-family: 'Montserrat', sans-serif; /* Montserrat font */
+        font-weight: 200; /* ExtraLight version */
+        font-size: 1.8rem; /* Adjust title size */
+        color: #dbebfb;
+        margin: 0;
+        text-align: left; /* Align to the left for visual consistency */
+    }
+    
+    /* Media query for mobile devices */
+    @media (max-width: 768px) {
+        .Title-Effects {
+            text-align: center; /* Center align on mobile */
+        }
+    }
     font-size: 1rem;
 }
 
@@ -101,6 +123,13 @@ footer {
     color: #dbebfb;
     margin: 0;
     text-align: left; /* Align to the left for visual consistency */
+}
+
+/* Media query for mobile devices */
+@media (max-width: 768px) {
+    .Title-Effects {
+        text-align: center; /* Center align on mobile */
+    }
 }
 
 @keyframes changeEmoji {
