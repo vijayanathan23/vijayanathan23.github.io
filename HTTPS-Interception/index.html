@@ -1,0 +1,103 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intercepting HTTPS</title>
+    <link rel="stylesheet" href="/css/style.css">
+<meta name="generator" content="Hexo 7.3.0"></head>
+<body>
+    <header class="header-container">
+        <!-- Partial: header.ejs -->
+<div>
+    <h1 class="Title-Effects"> <a href="/"> TheSaturdayProjects </a></h1>
+        <nav>
+            <a href="/">Home</a>
+            <a href="/Projects">Projects</a>
+            <a target="_blank" rel="noopener" href="https://github.com/vijayanathan23">Guess Who?</a>
+        </nav>
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+</div>
+
+    </header>
+
+    <main class="main-container">
+        <article class="post">
+    <h1 style="text-align: center;">Intercepting HTTPS</h1>
+    <div class="post-content">
+        <p>From the previous exploration, one thing that was clear to me was that HTTPS requests cannot be intercepted and visualized as easily as HTTP requests. The problem is that an HTTP request gets encrypted completely the moment it leaves the browser tab (or as soon as it reaches the Transport layer of the OSI model).</p>
+<p>[Here I am, Continuing from the last Exploration <a href="https://thesaturdayprojects.com/Exploring-Request-Interceptors/">Exploring-Request-Interceptors</a>]</p>
+<p>This is a security feature implemented in browsers to ensure that a user’s traffic is not intercepted or modified by malicious actors in the network.</p>
+<h2 id="What-is-SSL-TLS"><a href="#What-is-SSL-TLS" class="headerlink" title="What is SSL&#x2F;TLS?"></a>What is SSL&#x2F;TLS?</h2><p>As the name suggests, <strong>SSL&#x2F;TLS (Secure Socket Layer &#x2F; Transport Layer Security)</strong> is a protocol that helps secure data at the <strong>transport layer</strong> (below the application layer and above the network layer. This means that encryption happens right before data enters the network layer and decryption occurs right before the data leaves the transport layer.)</p>
+<blockquote>
+<p><strong>PS:</strong> I initially assumed HTTPS was an application-layer protocol like HTTP. However, after some Googling and LLM-ing, I realized I was wrong. HTTP is indeed an application-layer protocol. TLS itself operates at the Transport Layer, encrypting HTTP requests before they are sent over the network. So, while HTTPS feels like it exists between the Application and Transport Layers, it is technically an Application Layer protocol that relies on Transport Layer security (TLS) for encryption.</p>
+</blockquote>
+<p>Interestingly, there is no strict classification of HTTPS in the OSI model, as it is simply HTTP over TLS rather than a completely different protocol.</p>
+<p><img src="/Images/TLS.png" alt="TLS"></p>
+<h2 id="Implementing-HTTPS-Interception-in-a-Proxy-Server"><a href="#Implementing-HTTPS-Interception-in-a-Proxy-Server" class="headerlink" title="Implementing HTTPS Interception in a Proxy Server"></a>Implementing HTTPS Interception in a Proxy Server</h2><p>With this understanding, I thought I had figured it all out and implemented a quick encryption&#x2F;decryption mechanism in our proxy server.</p>
+<h3 id="Steps-I-assumed-that-would-make-it-happen"><a href="#Steps-I-assumed-that-would-make-it-happen" class="headerlink" title="Steps I assumed that would make it happen:"></a>Steps I assumed that would make it happen:</h3><ol>
+<li><strong>Handle the HTTP CONNECT method</strong>: This ensures a TCP handshake occurs, establishing an active connection when using the proxy server in browsers.</li>
+<li><strong>Decrypt the browser’s request</strong> and cache it for the data viewer.</li>
+<li><strong>Encrypt the request again</strong> and forward it to the actual server.</li>
+<li><strong>Receive the response</strong>, decrypt it, and cache it for the data viewer.</li>
+<li><strong>Encrypt the response</strong> before sending it back to the browser.</li>
+</ol>
+<p>Eazy Peazy! or so I thought. With some help from ChatGPT, I wrote the Go code and ran it.</p>
+<p><strong>Voila! I ended up with the following error page:</strong></p>
+<p><img src="/Images/SecurityIssue_FireFox.png" alt="Error Page"></p>
+<p>Turns out, I needed to be mindful of <strong>SSL certificates</strong>.</p>
+<h2 id="Understanding-TLS-Handshake-and-Certificates"><a href="#Understanding-TLS-Handshake-and-Certificates" class="headerlink" title="Understanding TLS Handshake and Certificates"></a>Understanding TLS Handshake and Certificates</h2><p>It makes sense, right? If it were that easy to decrypt HTTPS traffic, attackers would have already broken many secure applications!</p>
+<p>This led me to learn more about the <strong>TLS handshake</strong>, the very first phase of TLS where:</p>
+<ul>
+<li>The server and client negotiate the <strong>TLS version</strong> (1.0, 1.1, 1.2, or 1.3).</li>
+<li>The server sends a <strong>Server Certificate</strong>, issued by a <strong>Certificate Authority (CA)</strong>, which the client verifies.</li>
+<li>The client and server use Key Exchange algorithms (e.g., Diffie-Hellman, ECDHE) to securely derive a shared key. </li>
+<li>During the handshake, the server shares its public key (from the certificate). The client uses this only for authentication, ensuring that the server is legitimate and not an imposter.</li>
+<li><strong>Post-handshake</strong>, all HTTP requests and responses are <strong>encrypted and decrypted</strong> using the derived key.</li>
+<li><strong>Notable point</strong>: A <strong>common session key</strong> is derived by both the server and client, making it <strong>symmetric key cryptography</strong>.</li>
+</ul>
+<h3 id="How-Certificate-Validation-Works"><a href="#How-Certificate-Validation-Works" class="headerlink" title="How Certificate Validation Works"></a>How Certificate Validation Works</h3><p>Going deeper into this, I learned about <strong>root certificates</strong>, which are issued by trusted authorities. Whenever a server sends its certificate, the browser validates it against the <strong>root certificate</strong> to determine its authenticity. Only when this validation is successful does the browser proceed with the actual HTTP request. Otherwise, it marks the connection as <strong>Not Secure!</strong></p>
+<h4 id="The-Chain-of-Trust"><a href="#The-Chain-of-Trust" class="headerlink" title="The Chain of Trust"></a>The Chain of Trust</h4><p>These root certificates are installed in the OS when a browser is installed. Examples of certificate-issuing authorities include:</p>
+<ul>
+<li><strong>DigiCert</strong></li>
+<li><strong>Let’s Encrypt</strong></li>
+<li><strong>GlobalSign</strong></li>
+</ul>
+<p>A <strong>ServerCertificate</strong> is derived from a <strong>Root Certificate</strong>, meaning that the authenticity of a server certificate can be validated using the root certificate.</p>
+<h3 id="How-This-Works-Step-by-Step"><a href="#How-This-Works-Step-by-Step" class="headerlink" title="How This Works Step-by-Step"></a>How This Works Step-by-Step</h3><ol>
+<li>The user installs a browser (<strong>Root Certificate gets installed with it!</strong>).</li>
+<li>The user visits an HTTPS website.</li>
+<li>The website’s server sends the <strong>ServerCertificate</strong>.</li>
+<li>The browser verifies the ServerCertificate against the <strong>Root Certificate</strong>.</li>
+</ol>
+<p>If the root certificate is missing, the browser will mark the site as <strong>potentially vulnerable</strong> or even <strong>block access</strong>. This ensures that no one can <strong>pretend</strong> to be the website’s server. (Which makes developing an HTTPS proxy quite tricky!)</p>
+<h2 id="Creating-My-Own-Root-Certificate-for-Interception"><a href="#Creating-My-Own-Root-Certificate-for-Interception" class="headerlink" title="Creating My Own Root Certificate for Interception"></a>Creating My Own Root Certificate for Interception</h2><p>Having understood this, I ran back to ChatGPT and came up with an idea: <strong>To intercept my own requests, I could create and install my own Root Certificate!</strong></p>
+<ol>
+<li>Used <strong>OpenSSL</strong> to generate a Root Certificate.</li>
+<li>Imported it into <strong>Firefox’s trust store</strong>.</li>
+<li>Modified my proxy server to generate <strong>Server Certificates for each website</strong> the user requests.</li>
+</ol>
+<p>This allowed my proxy to <strong>act as the server</strong>, intercept traffic, and present data to the user.</p>
+<h2 id="Success-Here’s-the-Intercepted-HTTPS-Request-for-TheSaturdayProjects-com"><a href="#Success-Here’s-the-Intercepted-HTTPS-Request-for-TheSaturdayProjects-com" class="headerlink" title="Success! Here’s the Intercepted HTTPS Request for TheSaturdayProjects.com"></a>Success! Here’s the Intercepted HTTPS Request for TheSaturdayProjects.com</h2><p><img src="/Images/HTTPS-Interception.png" alt="Intercepted HTTPS Request"></p>
+<h2 id="References"><a href="#References" class="headerlink" title="References:"></a>References:</h2><p>Please note that here, the main objective was to intercept HTTPS requests and understand how TLS works, rather than diving deep into the details of the TLS handshake and encryption mechanisms for different TLS versions.</p>
+<p>If you’re interested in the unexplored aspects, you can refer to the following resources!</p>
+<ol>
+<li>Amazing videos from Computerphile:<ul>
+<li><a target="_blank" rel="noopener" href="https://youtu.be/0TLDTodL7Lc">How HTTPS Works</a></li>
+<li><a target="_blank" rel="noopener" href="https://youtu.be/0TLDTodL7Lc?feature=shared">SSL&#x2F;TLS Explained</a></li>
+</ul>
+</li>
+<li>More on Certificates: I know I did a poor job explaining certificates—<a target="_blank" rel="noopener" href="https://www.keyfactor.com/education-center/the-difference-in-root-certificates-vs-intermediate-certificates/">read more here</a>.</li>
+</ol>
+<h2 id="The-Code"><a href="#The-Code" class="headerlink" title="The Code"></a>The Code</h2><p>The full implementation of <strong>HTTPS interception</strong> can be found in this repo: <a target="_blank" rel="noopener" href="https://github.com/vijayanathan23/HTTPInterceptor">GitHub</a>.</p>
+<p>Thanks for reading from <strong>TheSaturdayProjects 🤖!</strong></p>
+
+    </div>
+</article>
+
+    </main>
+
+    <footer>
+        <p>Made with ❤️ by TheSaturdayProjects<!-- | <a class="button-coffee" href="https://www.buymeacoffee.com/yourusername" target="_blank">Buy me a coffee</a></p>-->
+    </footer>
+</body>
+</html>
